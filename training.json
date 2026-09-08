@@ -215,7 +215,7 @@
                 {
                     "title": "The narrowed address range for THIS sandbox",
                     "content": "Ask your instructor for the top bits appropriate to this image/flavor, or determine them once (with ASLR off) via gdb on your own non-Set-UID copy of stack.c, then brute-force only the low ~14 bits with ASLR back on.",
-                    "hint_penalty": 6,
+                    "hint_penalty": 2,
                     "order": 0
                 }
             ],
