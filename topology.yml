@@ -29,9 +29,6 @@ net_mappings:
 
 router_mappings:
   - router: victim-router
-    network: internet-connection
-    ip: 100.100.100.1
-  - router: victim-router
     network: lab-switch
     ip: 10.1.26.1
 
