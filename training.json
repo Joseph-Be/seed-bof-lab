@@ -123,13 +123,13 @@
                 {
                     "title": "How do I find the offset without debugging the Set-UID binary directly?",
                     "content": "Copy stack.c to your own file, compile a plain (non-Set-UID) version of it, and use gdb on that copy - the stack layout will be close enough to the real Set-UID binary.",
-                    "hint_penalty": 10,
+                    "hint_penalty": 4,
                     "order": 0
                 },
                 {
                     "title": "My return address guess isn't landing in the NOP sled.",
                     "content": "Remember buffer[] sits below the saved frame pointer and return address on the stack (see Figure 1/2 in the lab handout) - and that your BUF_SIZE is not 24, the value used in the handout's examples.",
-                    "hint_penalty": 8,
+                    "hint_penalty": 3,
                     "order": 1
                 }
             ],
@@ -176,7 +176,7 @@
                 {
                     "title": "What's dash's syscall number for setuid?",
                     "content": "0xd5 (as used in the lab handout's Task 3 shellcode).",
-                    "hint_penalty": 4,
+                    "hint_penalty": 2,
                     "order": 0
                 }
             ],
