@@ -5,7 +5,7 @@ hosts:
     base_box:
       image: SEEDUbuntu-16.04-32bit
       mgmt_user: debian
-    flavor: standard.small
+    flavor: standard.medium
 
 routers:
   - name: victim-router

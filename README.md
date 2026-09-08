@@ -19,7 +19,7 @@ exercise. Built to mirror the structure of the `library-junior-hacker` example s
 
 | Host | Image | Flavor |
 |---|---|---|
-| victim | debian-12-x86_64 | standard.small |
+| victim | SEEDUbuntu-16.04-32bit | standard.medium |
 
 Single host + router (router is required plumbing for WAN/user access; the student never interacts
 with it directly - same as the SEED lab's single-VM experience).
