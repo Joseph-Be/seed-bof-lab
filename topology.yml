@@ -15,7 +15,7 @@ routers:
     flavor: standard.small
 
 wan:
-  name: internet-connection
+  - name: internet-connection
   cidr: 100.100.100.0/24
 
 networks:
