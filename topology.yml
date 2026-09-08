@@ -5,6 +5,7 @@ hosts:
     base_box:
       image: SEEDUbuntu-16.04-32bit
       mgmt_user: debian
+      os_type: linux
     flavor: m1.medium
 
 routers:
@@ -12,6 +13,7 @@ routers:
     base_box:
       image: debian-12-x86_64
       mgmt_user: debian
+      os_type: linux
     flavor: standard.small
 
 wan:
