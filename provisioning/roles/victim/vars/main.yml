@@ -1,0 +1,9 @@
+packages:
+  - build-essential
+  - gcc-multilib
+  - libc6-dev-i386
+  - gdb
+  - python3
+  - zsh
+  - dash
+  - vim

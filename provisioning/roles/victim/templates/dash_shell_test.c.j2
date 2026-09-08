@@ -1,0 +1,21 @@
+/* dash_shell_test.c
+ * Demonstrates dash's countermeasure that drops privileges in a Set-UID
+ * process. Compile, then:
+ *   sudo chown root dash_shell_test   -- NOT available to you on this host,
+ * so instead observe the same effect through the "stack" binary itself,
+ * as described in the Task 3 assignment.
+ */
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int main()
+{
+    char *argv[2];
+    argv[0] = "/bin/sh";
+    argv[1] = NULL;
+
+    // setuid(0);
+    execve("/bin/sh", argv, NULL);
+    return 0;
+}

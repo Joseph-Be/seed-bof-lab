@@ -1,0 +1,11 @@
+Based on:
+
+SEED Labs - Buffer Overflow Vulnerability Lab
+Copyright (c) 2006-2016 Wenliang Du, All rights reserved.
+Free to use for non-commercial educational purposes.
+https://seedsecuritylabs.org / https://www.handsonsecurity.net
+
+This sandbox definition (topology, provisioning, training level structure, APG variable
+design) is an original adaptation for the CyberRangeCZ Platform and is not an official SEED
+Labs deliverable. The vulnerable program, shellcode, and exploit skeleton reproduced in the
+provisioning templates are taken from the SEED Labs handout under the terms above.

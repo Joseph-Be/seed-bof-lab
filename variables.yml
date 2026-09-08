@@ -1,0 +1,28 @@
+# APG variables: one fresh set of values is generated per sandbox instance
+# by the Answers Storage service at allocation time. Referenced:
+#  - here, by name, as plain Ansible variables during provisioning
+#  - in training.json, via "answer_variable_name" on APG-enabled levels
+#
+# https://docs.platform.cyberrange.cz/user-guide-advanced/sandboxes/apg-variables/
+
+# Reused as a generic random integer (the "port" type just yields min<=n<=max).
+# Range chosen to stay within the PDF's own suggested 0-400 window while
+# staying far enough from the edges that the stack layout keeps making sense.
+buf_size:
+    type: port
+    min: 60
+    max: 300
+    prohibited: [24]   # 24 is the PDF's own default; exclude so nobody's sandbox
+                        # accidentally matches a solution copy-pasted from the handout
+
+# Root-only flag tokens. Each is only readable from inside a shell whose EUID
+# is 0 obtained via the vulnerable binary - there is no other path to root
+# on this host (see provisioning/roles/victim for the sudoers restriction).
+flag_task2:
+    type: text
+
+flag_task3:
+    type: text
+
+flag_task4:
+    type: text

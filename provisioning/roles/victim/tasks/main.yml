@@ -1,0 +1,142 @@
+---
+# --- toolchain -------------------------------------------------------------
+
+- name: Enable i386 architecture (needed for -m32 shellcode/exploit builds)
+  command: dpkg --add-architecture i386
+  args:
+    creates: /var/lib/dpkg/arch_i386_enabled_marker
+  register: i386_enabled
+
+- name: Touch marker so the above only runs once
+  file:
+    path: /var/lib/dpkg/arch_i386_enabled_marker
+    state: touch
+  when: i386_enabled is changed
+
+- name: apt update
+  apt:
+    update_cache: yes
+
+- name: Install lab toolchain
+  apt:
+    name: "{{ packages }}"
+    state: present
+
+# --- student-owned reference/working files ----------------------------------
+# These are placed unprivileged in the student's home dir. Tasks 1, 5 and 6
+# are solved by compiling and running these directly as the seed user - no
+# root/setuid is needed for any of them (a stack-canary abort or a
+# non-exec-stack segfault happens the same way regardless of privilege).
+
+- name: Create seed's home subdirectory for lab files
+  file:
+    path: /home/seed/lab
+    state: directory
+    owner: seed
+    group: seed
+    mode: '0755'
+
+- name: Deploy stack.c (reference copy, for reading / Task 5 & 6 recompiles)
+  template:
+    src: stack.c.j2
+    dest: /home/seed/lab/stack.c
+    owner: seed
+    group: seed
+    mode: '0644'
+
+- name: Deploy exploit.c skeleton (Task 2)
+  template:
+    src: exploit.c.j2
+    dest: /home/seed/lab/exploit.c
+    owner: seed
+    group: seed
+    mode: '0644'
+
+- name: Deploy call_shellcode.c (Task 1)
+  template:
+    src: call_shellcode.c.j2
+    dest: /home/seed/lab/call_shellcode.c
+    owner: seed
+    group: seed
+    mode: '0644'
+
+- name: Deploy dash_shell_test.c (Task 3 reference)
+  template:
+    src: dash_shell_test.c.j2
+    dest: /home/seed/lab/dash_shell_test.c
+    owner: seed
+    group: seed
+    mode: '0644'
+
+# --- the actual attack target (pre-built, per-sandbox BUF_SIZE) ------------
+# Built and made Set-UID root by provisioning, NOT by the student - the
+# student never gets a sudo grant that could chown/chmod an arbitrary file,
+# so this is the only Set-UID-root binary reachable on the host.
+
+- name: Render stack.c for the build (private build dir, not student-writable)
+  template:
+    src: stack.c.j2
+    dest: /root/build_stack.c
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Compile the vulnerable target binary (StackGuard off, exec stack on)
+  command: >
+    gcc -m32 -fno-stack-protector -z execstack
+    -o /usr/local/bin/stack /root/build_stack.c
+
+- name: Make the target binary Set-UID root
+  file:
+    path: /usr/local/bin/stack
+    owner: root
+    group: root
+    mode: '4755'
+
+# --- per-sandbox flag tokens (root-only) ------------------------------------
+# Reachable exclusively via a shell obtained with EUID 0 through the
+# vulnerable binary above - there is no sudo path to root on this host.
+
+- name: Write Task 2 flag (root shell via the base exploit)
+  copy:
+    content: "{{ flag_task2 }}\n"
+    dest: /root/flag_task2.txt
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Write Task 3 flag (root shell surviving dash's setuid drop)
+  copy:
+    content: "{{ flag_task3 }}\n"
+    dest: /root/flag_task3.txt
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Write Task 4 flag (root shell obtained with ASLR back on)
+  copy:
+    content: "{{ flag_task4 }}\n"
+    dest: /root/flag_task4.txt
+    owner: root
+    group: root
+    mode: '0600'
+
+# --- narrow, safe sudo grants ------------------------------------------------
+# Only the four fixed commands the lab tasks genuinely require at the OS
+# level. None of them touch file ownership/permissions, so none of them can
+# be used to bypass the exercise.
+
+- name: Install narrow sudoers whitelist for seed
+  template:
+    src: seed-lab-sudoers.j2
+    dest: /etc/sudoers.d/seed-lab
+    owner: root
+    group: root
+    mode: '0440'
+    validate: 'visudo -cf %s'
+
+# --- leave these at their distro defaults on purpose ------------------------
+# kernel.randomize_va_space and the /bin/sh target are NOT touched here -
+# setting them up correctly is graded work in Level 2 ("Turn off
+# countermeasures") and Task 3, done by the student via the sudoers grants
+# above.

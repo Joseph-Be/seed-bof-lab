@@ -1,0 +1,281 @@
+{
+    "title": "Buffer Overflow Vulnerability Lab",
+    "description": "Stack buffer-overflow exploitation and countermeasures, adapted from the SEED Labs Buffer Overflow Vulnerability Lab. Every sandbox gets a unique BUF_SIZE and unique flags so answers cannot be shared between students.",
+    "prerequisites": [
+        "Basic Linux command line",
+        "C and x86 assembly fundamentals",
+        "Understanding of the process stack layout"
+    ],
+    "outcomes": [
+        "Explain how a stack buffer overflow corrupts the saved return address",
+        "Construct a working exploit (shellcode + NOP sled + return address) against a Set-UID program",
+        "Explain and defeat dash's Set-UID privilege-drop countermeasure",
+        "Explain why ASLR, StackGuard, and non-executable stacks each make exploitation harder, and what each does and does not protect against"
+    ],
+    "state": "UNRELEASED",
+    "show_stepper_bar": true,
+    "levels": [
+        {
+            "title": "Introduction",
+            "level_type": "INFO_LEVEL",
+            "order": 0,
+            "estimated_duration": 0,
+            "minimal_possible_solve_time": null,
+            "content": "# Buffer Overflow Vulnerability Lab\n\nAdapted from the SEED Labs *Buffer Overflow Vulnerability Lab* (W. Du, Syracuse University), used here for non-commercial educational purposes.\n\n## Please read carefully\n\n* Every task in this training builds on the previous one. Do not skip ahead - you will need the results (compiled files, badfile, notes on your BUF_SIZE) later.\n* **Your machine is not identical to your classmates'.** The vulnerable program on this sandbox was compiled with a buffer size that is unique to you, and the flags for the exploitation tasks are unique tokens generated for your sandbox only. Copying someone else's exploit bytes or answer will not work here - you have to actually understand and redo the calculation for your own machine.\n* This exercise is for educational purposes only. Everything you do is confined to your own sandbox.\n\n## Scenario\n\nYou have been handed a Set-UID root program, `stack`, running on this machine. It has a classic stack buffer-overflow vulnerability. Your job is to exploit it to obtain a root shell, and then explore why several common OS-level countermeasures make that harder (or impossible)."
+        },
+        {
+            "title": "Get Access",
+            "level_type": "ACCESS_LEVEL",
+            "order": 1,
+            "estimated_duration": 0,
+            "minimal_possible_solve_time": null,
+            "passkey": "start",
+            "cloud_content": "Your first task is to access the sandbox where you will complete all following tasks. After you have connected, submit the answer **`start`**.\n\n### Sandbox access\n1. In the topology overview on the right, right-click on **`victim`** and choose **Open GUI** (or connect over SSH).\n2. Log in with username **`seed`** and password **`BufferLab123`**.\n\nAll lab files (`stack.c`, `exploit.c`, `call_shellcode.c`, `dash_shell_test.c`) are already in `~/lab`.",
+            "local_content": "This sandbox has not been tested for use with local sandbox."
+        },
+        {
+            "title": "Turning off countermeasures",
+            "level_type": "TRAINING_LEVEL",
+            "order": 2,
+            "estimated_duration": 5,
+            "minimal_possible_solve_time": null,
+            "answer": "/bin/zsh",
+            "answer_variable_name": null,
+            "content": "Modern Linux distributions ship with several protections that make buffer-overflow attacks harder. To learn the technique itself, we disable them first (we will turn some back on later and see what changes).\n\n1. **Disable address space randomization** (root-wide setting):\n   `sudo sysctl -w kernel.randomize_va_space=0`\n\n2. **Point `/bin/sh` at `zsh` instead of `dash`.** Dash refuses to keep root privileges when it detects it is running inside a Set-UID process; zsh does not have this protection, so we use it for now:\n   `sudo ln -sf /bin/zsh /bin/sh`\n\n(StackGuard and the non-executable stack are controlled per-binary at compile time - you'll deal with those directly in Tasks 5 and 6.)\n\nThe flag is the output of `readlink /bin/sh` after step 2.",
+            "solution": "```\nseed@victim:~$ sudo sysctl -w kernel.randomize_va_space=0\nseed@victim:~$ sudo ln -sf /bin/zsh /bin/sh\nseed@victim:~$ readlink /bin/sh\n/bin/zsh\n```",
+            "solution_penalized": false,
+            "hints": [
+                {
+                    "title": "Which sudo commands am I allowed to run?",
+                    "content": "Only the exact commands shown in the assignment text are whitelisted for your account - the lab does not give you general sudo.",
+                    "hint_penalty": 1,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 1,
+            "variant_answers": false,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Task 1: Running shellcode",
+            "level_type": "TRAINING_LEVEL",
+            "order": 3,
+            "estimated_duration": 10,
+            "minimal_possible_solve_time": null,
+            "answer": "--help",
+            "answer_variable_name": null,
+            "content": "`~/lab/call_shellcode.c` loads a small piece of x86 shellcode into a buffer and jumps into it. This is the same code the exploit in Task 2 will use to spawn a shell.\n\n1. Compile it (32-bit, executable stack required):\n   `gcc -m32 -z execstack -o call_shellcode call_shellcode.c`\n2. Run it: `./call_shellcode` - you should land in a shell spawned by the shellcode.\n3. Read through the shellcode comments and understand what each instruction does (xorl/pushl build the `\"/bin/sh\"` argv on the stack, then `int $0x80` invokes `execve`).\n\nThe flag is the command-line option most tools accept to print detailed usage instructions (there are two common conventions for this - submit the longer one).",
+            "solution": "The flag is `--help` (as opposed to the short form `-h`).",
+            "solution_penalized": false,
+            "hints": [
+                {
+                    "title": "Where do I run this from?",
+                    "content": "Compile and run it from your own home directory as the seed user - no privilege is needed for this task.",
+                    "hint_penalty": 1,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 2,
+            "variant_answers": false,
+            "reference_solution": [
+                {
+                    "state_name": "shellcode_compiled",
+                    "prereq_state": [],
+                    "cmd": "gcc -m32 -z execstack -o call_shellcode call_shellcode.c",
+                    "cmd_type": "bash-command",
+                    "cmd_regex": "gcc .*call_shellcode\\.c",
+                    "optional": false
+                },
+                {
+                    "state_name": "shellcode_run",
+                    "prereq_state": [
+                        "shellcode_compiled"
+                    ],
+                    "cmd": "./call_shellcode",
+                    "cmd_type": "bash-command",
+                    "cmd_regex": "\\./call_shellcode",
+                    "optional": false
+                }
+            ],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Task 2: Exploiting the vulnerability",
+            "level_type": "TRAINING_LEVEL",
+            "order": 4,
+            "estimated_duration": 40,
+            "minimal_possible_solve_time": null,
+            "answer": null,
+            "answer_variable_name": "flag_task2",
+            "content": "`/usr/local/bin/stack` is a root-owned Set-UID program that reads a file called `badfile` from the current directory and copies its contents into a fixed-size stack buffer with `strcpy` - no bounds checking. Your job is to build `badfile` so that `stack` spawns a root shell.\n\n1. Copy `~/lab/stack.c` somewhere writable and compile your OWN (non-Set-UID) copy so you can inspect and debug it - **check the `BUF_SIZE` value defined at the top, it is specific to your sandbox.**\n2. Use `gdb` on your own copy (never on the Set-UID one) to work out where `buffer[]` sits relative to the saved return address, per the stack-layout guidance in the lab handout.\n3. Complete the `TODO` in `~/lab/exploit.c`: place the given shellcode near the end of a 517-byte buffer (NOP-sled the rest), then overwrite the saved return address at the correct offset **for your BUF_SIZE** so it lands inside the NOP sled.\n4. `gcc -m32 -o exploit exploit.c && ./exploit` to generate `badfile`.\n5. Run `/usr/local/bin/stack` from the same directory. If it works, you get a shell with an effective UID of 0.\n\nThe flag is the content of `/root/flag_task2.txt` (only readable once you actually have that root shell).",
+            "solution": "General approach (exact offset/address depend on your BUF_SIZE and will not match a classmate's):\n```\n$ gcc -m32 -o exploit exploit.c\n$ ./exploit\n$ /usr/local/bin/stack\n# id\nuid=1000(seed) euid=0(root)\n# cat /root/flag_task2.txt\n```",
+            "solution_penalized": true,
+            "hints": [
+                {
+                    "title": "How do I find the offset without debugging the Set-UID binary directly?",
+                    "content": "Copy stack.c to your own file, compile a plain (non-Set-UID) version of it, and use gdb on that copy - the stack layout will be close enough to the real Set-UID binary.",
+                    "hint_penalty": 10,
+                    "order": 0
+                },
+                {
+                    "title": "My return address guess isn't landing in the NOP sled.",
+                    "content": "Remember buffer[] sits below the saved frame pointer and return address on the stack (see Figure 1/2 in the lab handout) - and that your BUF_SIZE is not 24, the value used in the handout's examples.",
+                    "hint_penalty": 8,
+                    "order": 1
+                }
+            ],
+            "incorrect_answer_limit": 15,
+            "attachments": [],
+            "max_score": 8,
+            "variant_answers": true,
+            "reference_solution": [
+                {
+                    "state_name": "badfile_built",
+                    "prereq_state": [],
+                    "cmd": "./exploit",
+                    "cmd_type": "bash-command",
+                    "cmd_regex": "\\./exploit",
+                    "optional": false
+                },
+                {
+                    "state_name": "root_shell_task2",
+                    "prereq_state": [
+                        "badfile_built"
+                    ],
+                    "cmd": "/usr/local/bin/stack",
+                    "cmd_type": "bash-command",
+                    "cmd_regex": "(/usr/local/bin/)?stack",
+                    "optional": false
+                }
+            ],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Task 3: Defeating dash's countermeasure",
+            "level_type": "TRAINING_LEVEL",
+            "order": 5,
+            "estimated_duration": 20,
+            "minimal_possible_solve_time": null,
+            "answer": null,
+            "answer_variable_name": "flag_task3",
+            "content": "Modern `dash` drops privileges when it detects it is running inside a Set-UID process with differing real/effective IDs. Switch `/bin/sh` back to `dash` and watch your Task 2 exploit stop giving you real root:\n\n`sudo ln -sf /bin/dash /bin/sh`\n\nRe-run `/usr/local/bin/stack` with your existing `badfile` - notice that `id` no longer reports `euid=0`.\n\nTo defeat this, add a `setuid(0)` system call to the *beginning* of your shellcode (before the `execve`), so the real UID is already 0 by the time dash checks it. The PDF handout gives the extra 4 instructions to prepend (`xorl %eax,%eax`; `xorl %ebx,%ebx`; `movb $0xd5,%al`; `int $0x80`). Update the `shellcode[]` array in `exploit.c`, rebuild `badfile`, and try again.\n\nThe flag is the content of `/root/flag_task3.txt`.",
+            "solution": "Prepend the setuid(0) syscall to shellcode[], rebuild badfile, then re-run stack with /bin/sh pointing at dash; `id` should now show euid=0.",
+            "solution_penalized": true,
+            "hints": [
+                {
+                    "title": "What's dash's syscall number for setuid?",
+                    "content": "0xd5 (as used in the lab handout's Task 3 shellcode).",
+                    "hint_penalty": 4,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 15,
+            "attachments": [],
+            "max_score": 4,
+            "variant_answers": true,
+            "reference_solution": [
+                {
+                    "state_name": "sh_relinked_dash",
+                    "prereq_state": [
+                        "root_shell_task2"
+                    ],
+                    "cmd": "sudo ln -sf /bin/dash /bin/sh",
+                    "cmd_type": "bash-command",
+                    "cmd_regex": "sudo ln -sf /bin/dash /bin/sh",
+                    "optional": false
+                }
+            ],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Task 4: Defeating address randomization",
+            "level_type": "TRAINING_LEVEL",
+            "order": 6,
+            "estimated_duration": 20,
+            "minimal_possible_solve_time": null,
+            "answer": null,
+            "answer_variable_name": "flag_task4",
+            "content": "Turn ASLR back on and re-point `/bin/sh` at `zsh`:\n\n```\nsudo sysctl -w kernel.randomize_va_space=2\nsudo ln -sf /bin/zsh /bin/sh\n```\n\nRe-running your Task 2 badfile will now fail most of the time, because the stack base address moves on every run. On a real 32-bit machine the full search space is 2^19 addresses - too large for a classroom session - so for this task the search space has been narrowed for you (see the hint below).\n\nWrite a small shell script that regenerates a guess for the return address within the narrowed range, rebuilds `badfile`, and repeatedly runs `/usr/local/bin/stack` until it succeeds.\n\nThe flag is the content of `/root/flag_task4.txt`.",
+            "solution": "A bash loop that varies only the low bits of the guessed return address within the narrowed range (see hint), rebuilding badfile each iteration, converges in a few minutes.",
+            "solution_penalized": true,
+            "hints": [
+                {
+                    "title": "The narrowed address range for THIS sandbox",
+                    "content": "Ask your instructor for the top bits appropriate to this image/flavor, or determine them once (with ASLR off) via gdb on your own non-Set-UID copy of stack.c, then brute-force only the low ~14 bits with ASLR back on.",
+                    "hint_penalty": 6,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 20,
+            "attachments": [],
+            "max_score": 2,
+            "variant_answers": true,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Task 5: Turn on StackGuard",
+            "level_type": "TRAINING_LEVEL",
+            "order": 7,
+            "estimated_duration": 10,
+            "minimal_possible_solve_time": null,
+            "answer": "stack smashing detected",
+            "answer_variable_name": null,
+            "content": "Remember to turn ASLR back off first (`sudo sysctl -w kernel.randomize_va_space=0`), otherwise you won't know which protection is responsible for what you observe.\n\nCompile your OWN copy of `~/lab/stack.c` (no Set-UID needed for this task) WITHOUT disabling StackGuard:\n\n`gcc -m32 -z execstack -o stack_guarded stack.c`\n\nRun it with your Task-2-style `badfile` in the same directory. Describe what happens and why, in your lab report.\n\nThe flag is the distinctive phrase printed to the terminal right before the program aborts (lowercase, no punctuation).",
+            "solution": "GCC's stack protector detects the corrupted canary before the function returns and aborts with a message containing the phrase `*** stack smashing detected ***`, instead of jumping to the shellcode.",
+            "solution_penalized": false,
+            "hints": [
+                {
+                    "title": "I don't see any message",
+                    "content": "Make sure you did NOT pass -fno-stack-protector this time - StackGuard is on by default in modern GCC.",
+                    "hint_penalty": 1,
+                    "order": 0
+                }
+            ],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 2,
+            "variant_answers": false,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        },
+        {
+            "title": "Task 6: Turn on the non-executable stack",
+            "level_type": "TRAINING_LEVEL",
+            "order": 8,
+            "estimated_duration": 10,
+            "minimal_possible_solve_time": null,
+            "answer": "segmentation fault",
+            "answer_variable_name": null,
+            "content": "Still with ASLR off, compile your own copy once more, this time with StackGuard off again but the stack marked non-executable:\n\n`gcc -m32 -fno-stack-protector -z noexecstack -o stack_noexec stack.c`\n\nRun it with your `badfile`. This time the return-address overwrite still works (no canary to catch it), but jumping into the shellcode itself fails, because the CPU refuses to execute code that lives on the stack.\n\nThe flag is the message the shell prints when this happens (lowercase, no punctuation).",
+            "solution": "The overwritten return address does redirect execution onto the stack, but the CPU's NX/XD bit blocks execution there, so the process receives SIGSEGV: `segmentation fault`. Note this only stops shellcode-on-the-stack; it does not stop buffer overflows in general (see return-to-libc).",
+            "solution_penalized": false,
+            "hints": [],
+            "incorrect_answer_limit": 10,
+            "attachments": [],
+            "max_score": 1,
+            "variant_answers": false,
+            "reference_solution": [],
+            "mitre_techniques": [],
+            "expected_commands": [],
+            "commands_required": false
+        }
+    ]
+}

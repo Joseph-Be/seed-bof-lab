@@ -1,0 +1,9 @@
+# Narrow, fixed-argument sudo grants for the seed user.
+# Intentionally NOT "ALL=(ALL) NOPASSWD: ALL" and intentionally no chown/chmod
+# grant of any kind - those would let the student make an arbitrary binary
+# Set-UID root and bypass the exercise entirely. Every line below is a
+# complete, literal command; none of them can touch file ownership or mode.
+seed ALL=(root) NOPASSWD: /usr/sbin/sysctl -w kernel.randomize_va_space=0
+seed ALL=(root) NOPASSWD: /usr/sbin/sysctl -w kernel.randomize_va_space=2
+seed ALL=(root) NOPASSWD: /usr/bin/ln -sf /bin/zsh /bin/sh
+seed ALL=(root) NOPASSWD: /usr/bin/ln -sf /bin/dash /bin/sh
