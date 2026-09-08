@@ -4,7 +4,7 @@ hosts:
   - name: victim
     base_box:
       image: SEEDUbuntu-16.04-32bit
-      mgmt_user: debian
+      mgmt_user: seed
     flavor: m1.medium
 
 routers:
@@ -15,7 +15,7 @@ routers:
     flavor: standard.small
 
 wan:
-  - name: internet-connection
+  name: internet-connection
   cidr: 100.100.100.0/24
 
 networks:
@@ -28,6 +28,9 @@ net_mappings:
     ip: 10.1.26.10
 
 router_mappings:
+  - router: victim-router
+    network: internet-connection
+    ip: 100.100.100.1
   - router: victim-router
     network: lab-switch
     ip: 10.1.26.1
