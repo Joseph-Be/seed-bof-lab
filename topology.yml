@@ -4,7 +4,7 @@ hosts:
   - name: victim
     base_box:
       image: SEEDUbuntu-16.04-32bit
-      mgmt_user: debian
+      mgmt_user: seed
     flavor: m1.medium
 
 routers:
