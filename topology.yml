@@ -3,7 +3,7 @@ name: seed-buffer-overflow-lab
 hosts:
   - name: victim
     base_box:
-      image: SEEDUbuntu-16.04-32bit
+      image: seed
       mgmt_user: ubuntu
     flavor: m1.medium
 
